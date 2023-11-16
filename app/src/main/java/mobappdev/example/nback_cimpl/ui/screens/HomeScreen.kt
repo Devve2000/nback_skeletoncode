@@ -1,5 +1,7 @@
 package mobappdev.example.nback_cimpl.ui.screens
 
+import android.util.Log
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,7 +11,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -25,14 +31,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import mobappdev.example.nback_cimpl.R
 import mobappdev.example.nback_cimpl.ui.viewmodels.FakeVM
 import mobappdev.example.nback_cimpl.ui.viewmodels.GameViewModel
+import mobappdev.example.nback_cimpl.ui.viewmodels.GameType
 
 /**
  * This is the Home screen composable
@@ -49,7 +58,8 @@ import mobappdev.example.nback_cimpl.ui.viewmodels.GameViewModel
 
 @Composable
 fun HomeScreen(
-    vm: GameViewModel
+    vm: GameViewModel,
+    navController: NavController
 ) {
     val highscore by vm.highscore.collectAsState()  // Highscore is its own StateFlow
     val gameState by vm.gameState.collectAsState()
@@ -71,11 +81,14 @@ fun HomeScreen(
                 text = "High-Score = $highscore",
                 style = MaterialTheme.typography.headlineLarge
             )
+
+
             // Todo: You'll probably want to change this "BOX" part of the composable
             Box(
                 modifier = Modifier.weight(1f),
                 contentAlignment = Alignment.Center
             ) {
+
                 Column(
                     Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -87,11 +100,15 @@ fun HomeScreen(
                             textAlign = TextAlign.Center
                         )
                     }
-                    Button(onClick = vm::startGame) {
+                    Button(onClick = { navController.navigate("visualgamescreen") }) {
                         Text(text = "Generate eventValues")
                     }
                 }
             }
+
+
+
+            if(gameState.eventValue == -1){
             Text(
                 modifier = Modifier.padding(16.dp),
                 text = "Start Game".uppercase(),
@@ -107,8 +124,12 @@ fun HomeScreen(
                 Button(onClick = {
                     // Todo: change this button behaviour
                     scope.launch {
+                        if (gameState.gameType == GameType.Visual)
+                            vm.setGameType(GameType.Audio)
+
                         snackBarHostState.showSnackbar(
-                            message = "Hey! you clicked the audio button"
+                            message = "You enabled audio version!",
+                            duration = SnackbarDuration.Short
                         )
                     }
                 }) {
@@ -124,8 +145,11 @@ fun HomeScreen(
                     onClick = {
                         // Todo: change this button behaviour
                         scope.launch {
+                            if (gameState.gameType == GameType.Audio)
+                                vm.setGameType(GameType.Visual)
+
                             snackBarHostState.showSnackbar(
-                                message = "Hey! you clicked the visual button",
+                                message = "You enabled the visual version!",
                                 duration = SnackbarDuration.Short
                             )
                         }
@@ -139,10 +163,12 @@ fun HomeScreen(
                     )
                 }
             }
+            }
         }
     }
 }
 
+/*
 @Preview
 @Composable
 fun HomeScreenPreview() {
@@ -151,3 +177,4 @@ fun HomeScreenPreview() {
         HomeScreen(FakeVM())
     }
 }
+*/

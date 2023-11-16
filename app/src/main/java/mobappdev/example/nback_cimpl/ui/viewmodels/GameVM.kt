@@ -65,10 +65,12 @@ class GameVM(
     override val nBack: Int = 2
 
     private var job: Job? = null  // coroutine job for the game event
-    private val eventInterval: Long = 2000L  // 2000 ms (2s)
+    private val eventInterval: Long = 1500L  // 2000 ms (2s)
 
     private val nBackHelper = NBackHelper()  // Helper that generate the event array
     private var events = emptyArray<Int>()  // Array with all events
+
+    private var checkMatchFlag: Boolean = false;
 
     override fun setGameType(gameType: GameType) {
         // update the gametype in the gamestate
@@ -82,6 +84,8 @@ class GameVM(
         events = nBackHelper.generateNBackString(10, 9, 30, nBack).toList().toTypedArray()  // Todo Higher Grade: currently the size etc. are hardcoded, make these based on user input
         Log.d("GameVM", "The following sequence was generated: ${events.contentToString()}")
 
+        //eventPoints = IntArray(events.size) {0}
+
         job = viewModelScope.launch {
             when (gameState.value.gameType) {
                 GameType.Audio -> runAudioGame()
@@ -92,11 +96,10 @@ class GameVM(
         }
     }
 
+
     override fun checkMatch() {
-        /**
-         * Todo: This function should check if there is a match when the user presses a match button
-         * Make sure the user can only register a match once for each event.
-         */
+
+
     }
     private fun runAudioGame() {
         // Todo: Make work for Basic grade
@@ -104,9 +107,19 @@ class GameVM(
 
     private suspend fun runVisualGame(events: Array<Int>){
         // Todo: Replace this code for actual game code
+        var index = 0
+        var points = IntArray(events.size)
+
         for (value in events) {
             _gameState.value = _gameState.value.copy(eventValue = value)
             delay(eventInterval)
+            _gameState.value = _gameState.value.copy(eventValue = -1)
+            delay(500L)
+            /*
+            if(checkMatchFlag)
+                checkMatch(index)
+
+             */
         }
 
     }
