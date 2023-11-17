@@ -1,5 +1,6 @@
 import android.content.res.Configuration
 import android.speech.tts.TextToSpeech
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,9 +27,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,10 +58,15 @@ fun VisualGameScreen(
 ){
     val gameState by vm.gameState.collectAsState()
     val currentScore by vm.score.collectAsState()
+
+    var gameStarted by rememberSaveable {mutableStateOf(false)}
     val orientation = LocalConfiguration.current.orientation
 
     LaunchedEffect(vm) {
-        vm.startGame()
+        if(!gameStarted) {
+            vm.startGame()
+            gameStarted = true
+        }
     }
 
     if (gameState.gameType == GameType.Audio) {
@@ -64,6 +75,13 @@ fun VisualGameScreen(
                 gameState.eventValue.toChar().toString() // Convert the eventValue to ASCII
             speak(asciiText, textToSpeech)
         }
+    }
+
+    DisposableEffect(gameState.eventValue) {
+        if (gameState.eventValue == -2) {
+            navController.popBackStack()
+        }
+        onDispose {}
     }
 
 
@@ -93,10 +111,18 @@ if(orientation == Configuration.ORIENTATION_PORTRAIT) {
         }
 
         GeneratePositionMatchButton(vm,
-            Modifier
-                .padding(8.dp)
-                .fillMaxHeight()
-                .clip(RoundedCornerShape(8.dp))
+            modifier = if(gameState.gameType == GameType.Visual) {
+                Modifier
+                    .padding(8.dp)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(8.dp))
+            } else {
+                Modifier
+                    .padding(8.dp)
+                    .fillMaxHeight()
+                    .wrapContentHeight(Alignment.Bottom)
+                    .clip(RoundedCornerShape(8.dp))
+            }
         )
 
     }
@@ -137,10 +163,19 @@ else
         }
 
         GeneratePositionMatchButton(vm,
-            Modifier
-                .padding(8.dp)
-                .fillMaxHeight(0.5f)
-                .clip(RoundedCornerShape(64.dp))
+            modifier = if(gameState.gameType == GameType.Visual) {
+                Modifier
+                    .padding(8.dp)
+                    .fillMaxHeight(0.5f)
+                    .clip(RoundedCornerShape(64.dp))
+            } else {
+                Modifier
+                    .padding(8.dp)
+                    .fillMaxHeight(0.5f)
+                    .clip(RoundedCornerShape(64.dp))
+                    .fillMaxWidth()
+                    .wrapContentWidth(Alignment.End)
+            }
         )
 }
 }

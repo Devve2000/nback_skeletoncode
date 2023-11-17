@@ -40,6 +40,9 @@ interface GameViewModel {
     val score: StateFlow<Int>
     val highscore: StateFlow<Int>
     val nBack: Int
+    val size: Int
+    val combinations: Int
+    val percentMatch: Int
 
     fun setGameType(gameType: GameType)
     fun startGame()
@@ -64,6 +67,10 @@ class GameVM(
 
     // nBack is currently hardcoded
     override val nBack: Int = 2
+    override val size: Int = 10
+    override val combinations: Int = 9
+    override val percentMatch: Int = 30
+
 
     private var job: Job? = null  // coroutine job for the game event
     private val eventInterval: Long = 2500L  // 2500 ms (2.5s)
@@ -84,7 +91,7 @@ class GameVM(
         job?.cancel()  // Cancel any existing game loop
 
         // Get the events from our C-model (returns IntArray, so we need to convert to Array<Int>)
-        events = nBackHelper.generateNBackString(10, 9, 30, nBack).toList().toTypedArray()  // Todo Higher Grade: currently the size etc. are hardcoded, make these based on user input
+        events = nBackHelper.generateNBackString(size, combinations, percentMatch, nBack).toList().toTypedArray()  // Todo Higher Grade: currently the size etc. are hardcoded, make these based on user input
         Log.d("GameVM", "The following sequence was generated: ${events.contentToString()}")
 
         eventPoints = IntArray(events.size) {0}
@@ -96,10 +103,16 @@ class GameVM(
                 GameType.AudioVisual -> runAudioVisualGame()
                 GameType.Visual -> runVisualGame(events)
             }
-            // Todo: update the highscore
+
+            if(score.value > highscore.value){
+                updateHighScore(score.value)
+            }
         }
     }
 
+    private suspend fun updateHighScore(score: Int){
+        userPreferencesRepository.saveHighScore(score)
+    }
 
     override fun checkMatch() {
         //Not allowed to update point for same event
@@ -121,22 +134,19 @@ class GameVM(
         _score.value = _score.value - 1
     }
     private suspend fun runAudioGame(events: Array<Int>) {
-        // Todo: Make work for Basic grade
-
+        delay(300L) //Just to give the screen some time to initialize
         for (value in events) {
-
             _gameState.value = _gameState.value.copy(eventValue = 64 + value) //Put 64 make the eventValue ASCII
             delay(eventInterval)
             _gameState.value = _gameState.value.copy(eventValue = 0) //Makes sure the next element is picked up
             delay(500L)
             currentIndex += 1
-
         }
+        _gameState.value = _gameState.value.copy(eventValue = -2) //'-2' tells the view to pop back
     }
 
     private suspend fun runVisualGame(events: Array<Int>){
-        // Todo: Replace this code for actual game code
-
+        delay(300L) //Just to give the screen some time to initialize
         for (value in events) {
             _gameState.value = _gameState.value.copy(eventValue = value)
             delay(eventInterval)
@@ -144,6 +154,7 @@ class GameVM(
             delay(500L)
             currentIndex += 1
         }
+        _gameState.value = _gameState.value.copy(eventValue = -2) //'-2' tells the view to pop back
     }
 
     private fun runAudioVisualGame(){
@@ -202,6 +213,7 @@ data class GameState(
     val eventValue: Int = -1  // The value of the array string
 )
 
+/*
 class FakeVM: GameViewModel{
     override val gameState: StateFlow<GameState>
         get() = MutableStateFlow(GameState()).asStateFlow()
@@ -220,4 +232,4 @@ class FakeVM: GameViewModel{
 
     override fun checkMatch() {
     }
-}
+}*/

@@ -1,0 +1,4 @@
+C:/MobilaApplikationer_CM2001/Github/Lab1.1/nback_skeletoncode/app/.cxx/Debug/3e01z3q1/armeabi-v7a/CMakeFiles/nback_cimpl.dir
+C:/MobilaApplikationer_CM2001/Github/Lab1.1/nback_skeletoncode/app/.cxx/Debug/3e01z3q1/armeabi-v7a/CMakeFiles/JniBridge.dir
+C:/MobilaApplikationer_CM2001/Github/Lab1.1/nback_skeletoncode/app/.cxx/Debug/3e01z3q1/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/MobilaApplikationer_CM2001/Github/Lab1.1/nback_skeletoncode/app/.cxx/Debug/3e01z3q1/armeabi-v7a/CMakeFiles/rebuild_cache.dir
