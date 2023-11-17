@@ -2,6 +2,7 @@ package mobappdev.example.nback_cimpl
 
 import VisualGameScreen
 import android.os.Bundle
+import android.speech.tts.TextToSpeech
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +16,7 @@ import androidx.navigation.compose.rememberNavController
 import mobappdev.example.nback_cimpl.ui.screens.HomeScreen
 import mobappdev.example.nback_cimpl.ui.theme.NBack_CImplTheme
 import mobappdev.example.nback_cimpl.ui.viewmodels.GameVM
+import java.util.Locale
 
 /**
  * This is the MainActivity of the application
@@ -31,7 +33,9 @@ import mobappdev.example.nback_cimpl.ui.viewmodels.GameVM
 
 
 class MainActivity : ComponentActivity() {
+    private var textToSpeech: TextToSpeech? = null
     override fun onCreate(savedInstanceState: Bundle?) {
+
         super.onCreate(savedInstanceState)
         setContent {
             NBack_CImplTheme {
@@ -46,6 +50,20 @@ class MainActivity : ComponentActivity() {
                     )
 
 
+                    // Initialize TextToSpeech
+                    textToSpeech = TextToSpeech(this) {
+                        if (it == TextToSpeech.SUCCESS) {
+                            // Language selection, here using English
+                            val languageResult = textToSpeech?.setLanguage(Locale.ENGLISH)
+                            if (languageResult == TextToSpeech.LANG_MISSING_DATA ||
+                                languageResult == TextToSpeech.LANG_NOT_SUPPORTED
+                            ) {
+                                // Handle language data missing or not supported
+                                textToSpeech = null
+                            }
+                        }
+                    }
+
                     val navController = rememberNavController()
                     NavHost(
                         navController = navController,
@@ -55,7 +73,7 @@ class MainActivity : ComponentActivity() {
                             HomeScreen(vm = gameViewModel, navController = navController)
                         }
                         composable("visualgamescreen"){
-                            VisualGameScreen(vm = gameViewModel, navController = navController)
+                            VisualGameScreen(vm = gameViewModel, navController = navController, textToSpeech = textToSpeech)
                         }
                     }
                 }

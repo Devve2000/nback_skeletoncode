@@ -1,6 +1,7 @@
 package mobappdev.example.nback_cimpl.ui.viewmodels
 
 import android.util.Log
+import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
@@ -65,12 +66,14 @@ class GameVM(
     override val nBack: Int = 2
 
     private var job: Job? = null  // coroutine job for the game event
-    private val eventInterval: Long = 1500L  // 2000 ms (2s)
+    private val eventInterval: Long = 2500L  // 2500 ms (2.5s)
 
     private val nBackHelper = NBackHelper()  // Helper that generate the event array
     private var events = emptyArray<Int>()  // Array with all events
 
-    private var checkMatchFlag: Boolean = false;
+    private var currentIndex: Int = 0
+    private var eventPoints = IntArray(0)
+
 
     override fun setGameType(gameType: GameType) {
         // update the gametype in the gamestate
@@ -84,11 +87,12 @@ class GameVM(
         events = nBackHelper.generateNBackString(10, 9, 30, nBack).toList().toTypedArray()  // Todo Higher Grade: currently the size etc. are hardcoded, make these based on user input
         Log.d("GameVM", "The following sequence was generated: ${events.contentToString()}")
 
-        //eventPoints = IntArray(events.size) {0}
+        eventPoints = IntArray(events.size) {0}
+        currentIndex = 0
 
         job = viewModelScope.launch {
             when (gameState.value.gameType) {
-                GameType.Audio -> runAudioGame()
+                GameType.Audio -> runAudioGame(events)
                 GameType.AudioVisual -> runAudioVisualGame()
                 GameType.Visual -> runVisualGame(events)
             }
@@ -98,30 +102,48 @@ class GameVM(
 
 
     override fun checkMatch() {
+        //Not allowed to update point for same event
+        if(eventPoints[currentIndex] != 0)
+            return;
 
+        val currentValue = events[currentIndex]
+        val startIndex = (currentIndex - 2).coerceAtLeast(0) //Not allowed to go outside array. Change -2 to the nBack
 
+        //Check the event array if the position is matching
+        for (i in startIndex until currentIndex) {
+            if(events[i] == currentValue){
+                eventPoints[currentIndex] = 1
+                _score.value = _score.value + 1
+                return
+            }
+        }
+        eventPoints[currentIndex] = -1
+        _score.value = _score.value - 1
     }
-    private fun runAudioGame() {
+    private suspend fun runAudioGame(events: Array<Int>) {
         // Todo: Make work for Basic grade
+
+        for (value in events) {
+
+            _gameState.value = _gameState.value.copy(eventValue = 64 + value) //Put 64 make the eventValue ASCII
+            delay(eventInterval)
+            _gameState.value = _gameState.value.copy(eventValue = 0) //Makes sure the next element is picked up
+            delay(500L)
+            currentIndex += 1
+
+        }
     }
 
     private suspend fun runVisualGame(events: Array<Int>){
         // Todo: Replace this code for actual game code
-        var index = 0
-        var points = IntArray(events.size)
 
         for (value in events) {
             _gameState.value = _gameState.value.copy(eventValue = value)
             delay(eventInterval)
             _gameState.value = _gameState.value.copy(eventValue = -1)
             delay(500L)
-            /*
-            if(checkMatchFlag)
-                checkMatch(index)
-
-             */
+            currentIndex += 1
         }
-
     }
 
     private fun runAudioVisualGame(){
@@ -145,6 +167,26 @@ class GameVM(
             }
         }
     }
+}
+
+private fun mapNumberToLetter(events: Array<Int>):Array<Char> {
+    val result = Array(events.size){'A'}
+    for((index, value) in events.withIndex()) {
+        // Map numbers 1-9 to letters A-I
+         result[index] = when (value) {
+            1 -> 'A'
+            2 -> 'B'
+            3 -> 'C'
+            4 -> 'D'
+            5 -> 'E'
+            6 -> 'F'
+            7 -> 'G'
+            8 -> 'H'
+            9 -> 'I'
+            else -> ' '
+        }
+    }
+    return result
 }
 
 // Class with the different game types

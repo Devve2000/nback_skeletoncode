@@ -1,5 +1,6 @@
 package mobappdev.example.nback_cimpl.ui.screens
 
+import android.graphics.fonts.FontStyle
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -32,10 +33,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter.Companion.tint
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import mobappdev.example.nback_cimpl.R
@@ -82,38 +86,39 @@ fun HomeScreen(
                 style = MaterialTheme.typography.headlineLarge
             )
 
-
-            // Todo: You'll probably want to change this "BOX" part of the composable
             Box(
                 modifier = Modifier.weight(1f),
                 contentAlignment = Alignment.Center
             ) {
-
                 Column(
                     Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    if (gameState.eventValue != -1) {
+                    //If the button is pressed the selected game starts
+                    Button(
+                        onClick = { navController.navigate("visualgamescreen") }
+                    ) {
                         Text(
-                            modifier = Modifier.fillMaxWidth(),
-                            text = "Current eventValue is: ${gameState.eventValue}",
-                            textAlign = TextAlign.Center
+                            text = "Start game",
+                            fontSize = 32.sp,
                         )
                     }
-                    Button(onClick = { navController.navigate("visualgamescreen") }) {
-                        Text(text = "Generate eventValues")
-                    }
+
+                    Text(
+                        text = "Current game options"
+                    )
                 }
             }
 
 
-
-            if(gameState.eventValue == -1){
             Text(
                 modifier = Modifier.padding(16.dp),
-                text = "Start Game".uppercase(),
-                style = MaterialTheme.typography.displaySmall
+                text = "Select game type".uppercase(),
+                fontWeight = FontWeight.Bold,
+                fontSize = 32.sp
             )
+
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -122,20 +127,14 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Button(onClick = {
-                    // Todo: change this button behaviour
                     scope.launch {
-                        if (gameState.gameType == GameType.Visual)
                             vm.setGameType(GameType.Audio)
-
-                        snackBarHostState.showSnackbar(
-                            message = "You enabled audio version!",
-                            duration = SnackbarDuration.Short
-                        )
                     }
                 }) {
                     Icon(
                         painter = painterResource(id = R.drawable.sound_on),
                         contentDescription = "Sound",
+                        tint = (if (gameState.gameType == GameType.Audio) Color.Red else Color.Unspecified),
                         modifier = Modifier
                             .height(48.dp)
                             .aspectRatio(3f / 2f)
@@ -143,26 +142,19 @@ fun HomeScreen(
                 }
                 Button(
                     onClick = {
-                        // Todo: change this button behaviour
                         scope.launch {
-                            if (gameState.gameType == GameType.Audio)
-                                vm.setGameType(GameType.Visual)
-
-                            snackBarHostState.showSnackbar(
-                                message = "You enabled the visual version!",
-                                duration = SnackbarDuration.Short
-                            )
+                            vm.setGameType(GameType.Visual)
                         }
                     }) {
                     Icon(
                         painter = painterResource(id = R.drawable.visual),
                         contentDescription = "Visual",
+                        tint = (if (gameState.gameType == GameType.Visual) Color.Red else Color.Unspecified),
                         modifier = Modifier
                             .height(48.dp)
                             .aspectRatio(3f / 2f)
                     )
                 }
-            }
             }
         }
     }
