@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -253,7 +254,11 @@ private fun GeneratePositionMatchButton(vm: GameViewModel, modifier: Modifier){
     Button(
         onClick = { vm.checkMatch() },
         modifier = modifier,
-        colors = ButtonDefaults.buttonColors(containerColor = buttonColor ?: Color.Blue)
+        colors = if (buttonColor != null) {
+            ButtonDefaults.buttonColors(containerColor = buttonColor ?: LocalContentColor.current)
+        } else {
+            ButtonDefaults.buttonColors()
+        }
 
     ){
         Text(
