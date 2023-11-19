@@ -21,10 +21,13 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -33,6 +36,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -44,8 +49,11 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import mobappdev.example.nback_cimpl.ui.viewmodels.GameState
 import mobappdev.example.nback_cimpl.ui.viewmodels.GameType
 import mobappdev.example.nback_cimpl.ui.viewmodels.GameViewModel
@@ -55,19 +63,11 @@ fun VisualGameScreen(
     vm: GameViewModel,
     navController: NavController,
     textToSpeech: TextToSpeech?
-){
+) {
     val gameState by vm.gameState.collectAsState()
     val currentScore by vm.score.collectAsState()
-
-    var gameStarted by rememberSaveable {mutableStateOf(false)}
+    var gameStarted by rememberSaveable { mutableStateOf(false) }
     val orientation = LocalConfiguration.current.orientation
-
-    LaunchedEffect(vm) {
-        if(!gameStarted) {
-            vm.startGame()
-            gameStarted = true
-        }
-    }
 
     if (gameState.gameType == GameType.Audio) {
         LaunchedEffect(gameState.eventValue) {
@@ -79,115 +79,123 @@ fun VisualGameScreen(
 
     DisposableEffect(gameState.eventValue) {
         if (gameState.eventValue == -2) {
+            Log.d("VisualGameScreen", "Hellu")
+            gameStarted = false
             navController.popBackStack()
         }
         onDispose {}
     }
 
 
-
     //HERE IS PORTRAIT MODE
-if(orientation == Configuration.ORIENTATION_PORTRAIT) {
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-
-        GenerateTopText(currentScore = currentScore, fontSize = 50,
-            Modifier
-                .padding(8.dp)
-        )
-
-        if (gameState.gameType == GameType.Visual) {
-            GenerateMatrix(
-                gameState = gameState,
+        if (orientation == Configuration.ORIENTATION_PORTRAIT) {
+            Column(
                 modifier = Modifier
-                    .fillMaxHeight(0.8f)
-                    .aspectRatio(1f)
-                    .fillMaxWidth(1f)
-            )
-        }
+                    .fillMaxSize(),
 
-        GeneratePositionMatchButton(vm,
-            modifier = if(gameState.gameType == GameType.Visual) {
-                Modifier
-                    .padding(8.dp)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(8.dp))
-            } else {
-                Modifier
-                    .padding(8.dp)
-                    .fillMaxHeight()
-                    .wrapContentHeight(Alignment.Bottom)
-                    .clip(RoundedCornerShape(8.dp))
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+
+                GenerateTopText(
+                    currentScore = currentScore, fontSize = 50,
+                    modifier = Modifier.padding(8.dp),
+                    eventSize = vm.size,
+                    currentEvent = vm.currentIndex.value
+                )
+
+                if (gameState.gameType == GameType.Visual) {
+                    GenerateMatrix(
+                        gameState = gameState,
+                        modifier = Modifier
+                            .fillMaxHeight(0.8f)
+                            .aspectRatio(1f)
+                            .fillMaxWidth(1f)
+                    )
+                }
+
+                GeneratePositionMatchButton(
+                    vm,
+                    modifier = if (gameState.gameType == GameType.Visual) {
+                        Modifier
+                            .padding(8.dp)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(8.dp))
+                    } else {
+                        Modifier
+                            .padding(8.dp)
+                            .fillMaxHeight()
+                            .wrapContentHeight(Alignment.Bottom)
+                            .clip(RoundedCornerShape(8.dp))
+                    }
+                )
+
             }
-        )
+        } else
 
+
+        //   HERE IS LANDSCAPE MODE
+        {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                GenerateTopText(
+                    currentScore = currentScore, fontSize = 50,
+                    modifier = Modifier.padding(8.dp),
+                    eventSize = vm.size,
+                    currentEvent = vm.currentIndex.value
+                )
+
+                if (gameState.gameType == GameType.Visual) {
+                    GenerateMatrix(
+                        gameState = gameState,
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .aspectRatio(1f)
+                    )
+                }
+
+
+                if (gameState.gameType == GameType.Audio) {
+                    LaunchedEffect(gameState.eventValue) {
+                        val asciiText =
+                            gameState.eventValue.toChar()
+                                .toString() // Convert the eventValue to ASCII
+                        speak(asciiText, textToSpeech)
+                    }
+                }
+
+                GeneratePositionMatchButton(
+                    vm,
+                    modifier = if (gameState.gameType == GameType.Visual) {
+                        Modifier
+                            .padding(8.dp)
+                            .fillMaxHeight(0.5f)
+                            .clip(RoundedCornerShape(64.dp))
+                    } else {
+                        Modifier
+                            .padding(8.dp)
+                            .fillMaxHeight(0.5f)
+                            .clip(RoundedCornerShape(64.dp))
+                            .fillMaxWidth()
+                            .wrapContentWidth(Alignment.End)
+                    }
+                )
+            }
+        }
     }
-}
-else
-
-
-
- //   HERE IS LANDSCAPE MODE
-{
-    Row(
-        modifier = Modifier
-            .fillMaxSize(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-
-        GenerateTopText(currentScore = currentScore, fontSize = 30,
-            Modifier
-                .padding(8.dp)
-        )
-
-        if (gameState.gameType == GameType.Visual) {
-            GenerateMatrix(
-                gameState = gameState,
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .aspectRatio(1f)
-            )
-        }
-
-
-        if (gameState.gameType == GameType.Audio) {
-            LaunchedEffect(gameState.eventValue) {
-                val asciiText =
-                    gameState.eventValue.toChar().toString() // Convert the eventValue to ASCII
-                speak(asciiText, textToSpeech)
-            }
-        }
-
-        GeneratePositionMatchButton(vm,
-            modifier = if(gameState.gameType == GameType.Visual) {
-                Modifier
-                    .padding(8.dp)
-                    .fillMaxHeight(0.5f)
-                    .clip(RoundedCornerShape(64.dp))
-            } else {
-                Modifier
-                    .padding(8.dp)
-                    .fillMaxHeight(0.5f)
-                    .clip(RoundedCornerShape(64.dp))
-                    .fillMaxWidth()
-                    .wrapContentWidth(Alignment.End)
-            }
-        )
-}
-}
-}
 
 @Composable
-private fun GenerateTopText(currentScore: Int, fontSize: Int, modifier: Modifier){
+private fun GenerateTopText(currentScore: Int, eventSize: Int, currentEvent: Int, fontSize: Int, modifier: Modifier){
     Text(
-        text = "Current score: $currentScore",
+        text = "Score: $currentScore \n" +
+                "(${currentEvent+1} / $eventSize)",
         fontSize = fontSize.sp,
         color = Color.Black,
         fontWeight = FontWeight.Bold,
+        lineHeight = 1.em,
         modifier = modifier
     )
 }
@@ -219,11 +227,33 @@ private fun GenerateMatrix(gameState: GameState, modifier: Modifier) {
         }
     }
 
+
 @Composable
 private fun GeneratePositionMatchButton(vm: GameViewModel, modifier: Modifier){
+    var scoreBefore by remember { mutableStateOf(0) }
+    var buttonColor by remember { mutableStateOf<Color?>(null) }
+
+    LaunchedEffect(vm.score.value) {
+        val currentScore = vm.score.value
+
+        if (currentScore > scoreBefore) {
+            buttonColor = Color.Green
+        } else if (currentScore < scoreBefore) {
+            buttonColor = Color.Red
+        }
+
+        // Reset the color after a delay
+        delay(500L)
+        buttonColor = null
+
+        // Update the scoreBefore
+        scoreBefore = currentScore
+    }
+
     Button(
         onClick = { vm.checkMatch() },
-        modifier = modifier
+        modifier = modifier,
+        colors = ButtonDefaults.buttonColors(containerColor = buttonColor ?: Color.Blue)
 
     ){
         Text(
@@ -233,7 +263,6 @@ private fun GeneratePositionMatchButton(vm: GameViewModel, modifier: Modifier){
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
             lineHeight = 32.sp
-
         )
     }
 }
@@ -247,3 +276,16 @@ private fun speak(text: String?, textToSpeech: TextToSpeech?) {
         }
     }
 }
+
+/*
+            scope.launch{
+                if(vm.score.value > scoreBefore){
+                    ButtonDefaults.buttonColors(containerColor = Color.Green)
+                } else if (vm.score.value < scoreBefore){
+                    ButtonDefaults.buttonColors(containerColor = Color.Red)
+                } else {
+                    ButtonDefaults.buttonColors(containerColor = Color.Unspecified)
+                }
+                delay(500l)
+            }
+ */

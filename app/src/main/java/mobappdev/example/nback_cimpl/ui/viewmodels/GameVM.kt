@@ -39,10 +39,11 @@ interface GameViewModel {
     val gameState: StateFlow<GameState>
     val score: StateFlow<Int>
     val highscore: StateFlow<Int>
+    val currentIndex: StateFlow<Int>
     val nBack: Int
     val size: Int
     val combinations: Int
-    val percentMatch: Int
+    val eventInterval: Long
 
     fun setGameType(gameType: GameType)
     fun startGame()
@@ -65,20 +66,23 @@ class GameVM(
     override val highscore: StateFlow<Int>
         get() = _highscore
 
+    private val _currentIndex = MutableStateFlow(0)
+    override val currentIndex: StateFlow<Int>
+        get() = _currentIndex
+
+
     // nBack is currently hardcoded
     override val nBack: Int = 2
     override val size: Int = 10
     override val combinations: Int = 9
-    override val percentMatch: Int = 30
 
 
     private var job: Job? = null  // coroutine job for the game event
-    private val eventInterval: Long = 2500L  // 2500 ms (2.5s)
+    override val eventInterval: Long = 2500L  // 2500 ms (2.5s)
 
     private val nBackHelper = NBackHelper()  // Helper that generate the event array
     private var events = emptyArray<Int>()  // Array with all events
 
-    private var currentIndex: Int = 0
     private var eventPoints = IntArray(0)
 
 
@@ -89,13 +93,15 @@ class GameVM(
 
     override fun startGame() {
         job?.cancel()  // Cancel any existing game loop
+        _score.value = 0
+        _currentIndex.value = 0
+        _gameState.value = _gameState.value.copy(eventValue = -1)
 
         // Get the events from our C-model (returns IntArray, so we need to convert to Array<Int>)
-        events = nBackHelper.generateNBackString(size, combinations, percentMatch, nBack).toList().toTypedArray()  // Todo Higher Grade: currently the size etc. are hardcoded, make these based on user input
+        events = nBackHelper.generateNBackString(size, combinations, 30, nBack).toList().toTypedArray()  // Todo Higher Grade: currently the size etc. are hardcoded, make these based on user input
         Log.d("GameVM", "The following sequence was generated: ${events.contentToString()}")
 
         eventPoints = IntArray(events.size) {0}
-        currentIndex = 0
 
         job = viewModelScope.launch {
             when (gameState.value.gameType) {
@@ -114,45 +120,45 @@ class GameVM(
         userPreferencesRepository.saveHighScore(score)
     }
 
-    override fun checkMatch() {
+    override fun checkMatch(){
         //Not allowed to update point for same event
-        if(eventPoints[currentIndex] != 0)
-            return;
+        if(eventPoints[currentIndex.value] != 0)
+            return
 
-        val currentValue = events[currentIndex]
-        val startIndex = (currentIndex - 2).coerceAtLeast(0) //Not allowed to go outside array. Change -2 to the nBack
+        val currentValue = events[currentIndex.value]
+        val startIndex = (currentIndex.value - 2).coerceAtLeast(0) //Not allowed to go outside array. Change -2 to the nBack
 
         //Check the event array if the position is matching
-        for (i in startIndex until currentIndex) {
+        for (i in startIndex until currentIndex.value) {
             if(events[i] == currentValue){
-                eventPoints[currentIndex] = 1
+                eventPoints[currentIndex.value] = 1
                 _score.value = _score.value + 1
                 return
             }
         }
-        eventPoints[currentIndex] = -1
+        eventPoints[currentIndex.value] = -1
         _score.value = _score.value - 1
     }
     private suspend fun runAudioGame(events: Array<Int>) {
-        delay(300L) //Just to give the screen some time to initialize
+        delay(600L) //Just to give the screen some time to initialize
         for (value in events) {
             _gameState.value = _gameState.value.copy(eventValue = 64 + value) //Put 64 make the eventValue ASCII
             delay(eventInterval)
             _gameState.value = _gameState.value.copy(eventValue = 0) //Makes sure the next element is picked up
             delay(500L)
-            currentIndex += 1
+            _currentIndex.value += 1
         }
         _gameState.value = _gameState.value.copy(eventValue = -2) //'-2' tells the view to pop back
     }
 
     private suspend fun runVisualGame(events: Array<Int>){
-        delay(300L) //Just to give the screen some time to initialize
+        delay(600L) //Just to give the screen some time to initialize
         for (value in events) {
             _gameState.value = _gameState.value.copy(eventValue = value)
             delay(eventInterval)
             _gameState.value = _gameState.value.copy(eventValue = -1)
             delay(500L)
-            currentIndex += 1
+            _currentIndex.value += 1
         }
         _gameState.value = _gameState.value.copy(eventValue = -2) //'-2' tells the view to pop back
     }

@@ -70,12 +70,10 @@ fun HomeScreen(
 ) {
     val highscore by vm.highscore.collectAsState()  // Highscore is its own StateFlow
     val gameState by vm.gameState.collectAsState()
-    val snackBarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val orientation = LocalConfiguration.current.orientation
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackBarHostState) }
     ) {
         Column(
             modifier = Modifier
@@ -101,7 +99,7 @@ fun HomeScreen(
                                 "\nSize: ${vm.size}" +
                                 "\nCombinations: ${vm.combinations}" +
                                 "\nnBack: ${vm.nBack}" +
-                                "\nPercentMatch: ${vm.percentMatch}",
+                                "\nEvent interval: ${vm.eventInterval}",
                         fontSize = 24.sp,
                         lineHeight = 24.sp,
                         modifier = Modifier
@@ -114,7 +112,12 @@ fun HomeScreen(
                 ) {
                     //If the button is pressed the selected game starts
                     Button(
-                        onClick = { navController.navigate("visualgamescreen") }
+                        onClick = {
+                            navController.navigate("visualgamescreen")
+                            scope.launch {
+                                vm.startGame()
+                            }
+                        }
                     ) {
                         Text(
                             text = "Start game",
@@ -129,7 +132,7 @@ fun HomeScreen(
                                     "\nSize: ${vm.size}" +
                                     "\nCombinations: ${vm.combinations}" +
                                     "\nnBack: ${vm.nBack}" +
-                                    "\nPercentMatch: ${vm.percentMatch}",
+                                    "\nEvent interval: ${vm.eventInterval}",
                             fontSize = 24.sp,
                             lineHeight = 24.sp,
                             modifier = Modifier
@@ -158,9 +161,7 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Button(onClick = {
-                    scope.launch {
                             vm.setGameType(GameType.Audio)
-                    }
                 }) {
                     Icon(
                         painter = painterResource(id = R.drawable.sound_on),
@@ -173,9 +174,7 @@ fun HomeScreen(
                 }
                 Button(
                     onClick = {
-                        scope.launch {
                             vm.setGameType(GameType.Visual)
-                        }
                     }) {
                     Icon(
                         painter = painterResource(id = R.drawable.visual),
